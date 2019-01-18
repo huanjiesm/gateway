@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
+	// "github.com/coreos/etcd/clientv3"
 	"github.com/fagongzi/gateway/pkg/pb/rpcpb"
 	"github.com/fagongzi/gateway/pkg/service"
 	"github.com/fagongzi/gateway/pkg/store"
@@ -17,6 +17,7 @@ import (
 	"github.com/fagongzi/grpcx"
 	"github.com/fagongzi/log"
 	"github.com/labstack/echo"
+	"go.etcd.io/etcd/clientv3"
 	"google.golang.org/grpc"
 )
 
@@ -71,13 +72,14 @@ func main() {
 			service.InitHTTPRouter(server, *ui, *uiPrefix)
 		}))
 	}
-
-	s := grpcx.NewGRPCServer(*addr, func(svr *grpc.Server) []grpcx.Service {
+	var reg grpcx.ServiceRegister
+	reg = func(svr *grpc.Server) []grpcx.Service {
 		var services []grpcx.Service
 		rpcpb.RegisterMetaServiceServer(svr, service.MetaService)
 		services = append(services, grpcx.NewService(rpcpb.ServiceMeta, nil))
 		return services
-	}, opts...)
+	}
+	s := grpcx.NewGRPCServer(*addr, reg, opts...)
 
 	log.Infof("api server listen at %s", *addr)
 	go s.Start()
